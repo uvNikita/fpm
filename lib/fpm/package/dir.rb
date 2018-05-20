@@ -152,9 +152,19 @@ class FPM::Package::Dir < FPM::Package
       end
     else
       # Copy all files from 'path' into staging_path
+      directories = []
       Find.find(source) do |path|
         target = File.join(destination, path)
         copy(path, target)
+        if File.directory?(target)
+          directories << [path, target]
+        end
+      end
+
+      # Set directory metadata only at the very end. We can't do it earlier because copying files
+      # to directories with no write permission (like 0555) fails.
+      for src_dst in directories
+        copy_metadata(src_dst[0], src_dst[1])
       end
     end
   end # def clone
@@ -179,6 +189,7 @@ class FPM::Package::Dir < FPM::Package
       raise FPM::InvalidPackageConfiguration, "Tried to treat #{readable_path} like a directory, but it's a file!"
     end
 
+    copy_metadata = true
     if File.directory?(source)
       if !File.symlink?(source)
         # Create a directory if this path is a directory
@@ -186,6 +197,10 @@ class FPM::Package::Dir < FPM::Package
         if !File.directory?(destination)
           FileUtils.mkdir(destination)
         end
+
+        # Do not copy directory metadata just yet, because if the directory has a permission like 0555, creating files in the directory will fail.
+        # Let the caller do that at the very end.
+        copy_metadata = false
       else
         # Linking symlinked directories causes a hardlink to be created, which
         # results in the source directory being wiped out during cleanup,
@@ -209,7 +224,9 @@ class FPM::Package::Dir < FPM::Package
       end
     end
 
-    copy_metadata(source, destination)
+    if copy_metadata
+      copy_metadata(source, destination)
+    end
   end # def copy
 
   public(:input, :output)

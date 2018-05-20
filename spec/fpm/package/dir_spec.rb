@@ -23,8 +23,8 @@ describe FPM::Package::Dir do
 
   after :each do
     subject.cleanup
-    FileUtils.rm_r(tmpdir)
-    FileUtils.rm_r(output)
+    FileUtils.rm_rf(tmpdir)
+    FileUtils.rm_rf(output)
   end # after
 
   it "single file: should copy single files to the root of the output" do
@@ -180,4 +180,20 @@ describe FPM::Package::Dir do
       insist { File.read(File.join(output, symlinkpath)) } == "hello!"
     end
   end
+
+  context "read-only directories" do
+    it "Should be able to copy directories with 0555 permissions successfully" do
+      readonly_dir = File.join(tmpdir, "readonly_dir")
+      hello_in = File.join(readonly_dir, "hello")
+      hello_out = File.join(output, readonly_dir, "hello")
+      FileUtils.mkdir_p(readonly_dir)
+      File.write(hello_in, "Hello world")
+      FileUtils.chmod(0555, readonly_dir)
+      subject.input(tmpdir)
+      subject.output(output)
+      insist { File.read(hello_out) } == File.read(hello_in)
+      insist { File::Stat.new(File.join(output, readonly_dir)).mode & 0777 } == 0555
+    end
+  end
+
 end # describe FPM::Package::Dir
