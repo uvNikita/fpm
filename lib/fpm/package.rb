@@ -282,14 +282,14 @@ class FPM::Package
   def cleanup_staging
     if File.directory?(staging_path)
       logger.debug("Cleaning up staging path", :path => staging_path)
-      FileUtils.rm_r(staging_path)
+      FileUtils.rm_rf(staging_path)
     end
   end # def cleanup_staging
 
   def cleanup_build
     if File.directory?(build_path)
       logger.debug("Cleaning up build path", :path => build_path)
-      FileUtils.rm_r(build_path)
+      FileUtils.rm_rf(build_path)
     end
   end # def cleanup_build
 
@@ -398,7 +398,7 @@ class FPM::Package
 
         if File.fnmatch(wildcard, match_path)
           logger.info("Removing excluded path", :path => match_path, :matches => wildcard)
-          FileUtils.rm_r(path)
+          FileUtils.rm_rf(path)
           Find.prune
           break
         end
